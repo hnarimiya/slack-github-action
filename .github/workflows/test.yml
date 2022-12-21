@@ -1,0 +1,30 @@
+name: Tests
+on: [push]
+
+jobs:
+  unit_tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - run: npm ci && npm run build
+    - run: npm test
+
+  integration_test_file_payload:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - run: npm ci && npm run build
+    - name: Post message to Slack with Payload path
+      id: slackPayloadFile
+      uses: ./
+      with:
+        payload-file-path: ./.github/resources/payload-notification.json
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_INCOMING_WEBHOOK_URL }}
+        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        JOB_STATUS: ${{ job.status }}
+        ATTACHMENT_COLOR: ${{ (job.status == 'success' && 'good') || (job.status == 'failure' && 'danger') || 'warning' }}
+
+    # Use the output from the `slackIncoming` step
+    - name: Check Action output is not empty
+      run: test -n "${{ steps.slackPayloadFile.outputs.time }}"
